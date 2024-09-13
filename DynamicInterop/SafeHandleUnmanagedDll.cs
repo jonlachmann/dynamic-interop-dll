@@ -7,9 +7,9 @@ namespace DynamicInterop
     [SecurityPermission(SecurityAction.Demand, Flags = SecurityPermissionFlag.UnmanagedCode)]
     internal sealed class SafeHandleUnmanagedDll : SafeHandleZeroOrMinusOneIsInvalid
     {
-        public SafeHandleUnmanagedDll(string dllName) : base(true) 
+        public SafeHandleUnmanagedDll(string dllName) : base(true)
         {
-            IDynamicLibraryLoader libraryLoader = null;
+            IDynamicLibraryLoader libraryLoader;
             if (PlatformUtility.IsUnix)
                 libraryLoader = new UnixLibraryLoader();
             else if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -33,26 +33,14 @@ namespace DynamicInterop
 
         private bool FreeLibrary()
         {
-            bool freed = false;
-            if (libraryLoader == null)
+            if (libraryLoader != null) return libraryLoader.FreeLibrary(handle);
+            if (!IsInvalid)
             {
-                if (!this.IsInvalid)
-                {
-                    try
-                    {
-                        throw new ApplicationException("Warning: unexpected condition of library loader and native handle - some native resources may not be properly disposed of");
-                    }
-                    finally
-                    {
-                        freed = false;
-                    }
-                }
-                else
-                    freed = true;
-                return freed;
+                throw new ApplicationException("Warning: unexpected condition of library loader and native handle - some native resources may not be properly disposed of");
             }
-            else
-                return libraryLoader.FreeLibrary(handle);
+
+            return true;
+
         }
 
         public IntPtr GetFunctionAddress(string lpProcName)

@@ -9,10 +9,10 @@ using System.IO;
 namespace DynamicInterop
 {
     /// <summary>
-    /// Helper class with functions whose behavior may be depending on the platform 
+    /// Helper class with functions whose behavior may be depending on the platform
     /// </summary>
     public static class PlatformUtility
-    {       
+    {
         /// <summary>
         /// Is the platform unix-like (Unix or MacOX)
         /// </summary>
@@ -21,7 +21,7 @@ namespace DynamicInterop
             get
             {
                 var p = GetPlatform();
-                return p == PlatformID.MacOSX || p == PlatformID.Unix;
+                return p is PlatformID.MacOSX or PlatformID.Unix;
             }
         }
 
@@ -37,30 +37,28 @@ namespace DynamicInterop
         /// <returns>The current platform.</returns>
         public static PlatformID GetPlatform()
         {
-            if (!curPlatform.HasValue)
+            if (_curPlatform.HasValue) return _curPlatform.Value;
+            var platform = Environment.OSVersion.Platform;
+            if (platform != PlatformID.Unix)
             {
-                var platform = Environment.OSVersion.Platform;
-                if (platform != PlatformID.Unix)
+                _curPlatform = platform;
+            }
+            else
+            {
+                try
                 {
-                    curPlatform = platform;
+                    var kernelName = ExecCommand("uname", "-s");
+                    _curPlatform = (kernelName == "Darwin" ? PlatformID.MacOSX : platform);
                 }
-                else
-                {
-                    try
-                    {
-                        var kernelName = ExecCommand("uname", "-s");
-                        curPlatform = (kernelName == "Darwin" ? PlatformID.MacOSX : platform);
-                    }
-                    catch (Win32Exception)
-                    { // probably no PATH to uname.
-                        curPlatform = platform;
-                    }
+                catch (Win32Exception)
+                { // probably no PATH to uname.
+                    _curPlatform = platform;
                 }
             }
-            return curPlatform.Value;
+            return _curPlatform.Value;
         }
 
-        private static PlatformID? curPlatform = null;
+        private static PlatformID? _curPlatform;
 
         /// <summary>
         /// Execute a command in a new process
@@ -70,18 +68,16 @@ namespace DynamicInterop
         /// <returns>The output of the command to the standard output stream</returns>
         public static string ExecCommand(string processName, string arguments)
         {
-            using (var proc = new Process())
-            {
-                proc.StartInfo.FileName = processName;
-                proc.StartInfo.Arguments = arguments;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.CreateNoWindow = true;
-                proc.Start();
-                var kernelName = proc.StandardOutput.ReadLine();
-                proc.WaitForExit();
-                return kernelName;
-            }
+            using var proc = new Process();
+            proc.StartInfo.FileName = processName;
+            proc.StartInfo.Arguments = arguments;
+            proc.StartInfo.RedirectStandardOutput = true;
+            proc.StartInfo.UseShellExecute = false;
+            proc.StartInfo.CreateNoWindow = true;
+            proc.Start();
+            var kernelName = proc.StandardOutput.ReadLine();
+            proc.WaitForExit();
+            return kernelName;
         }
 
         /// <summary>
@@ -90,7 +86,7 @@ namespace DynamicInterop
         /// <returns>The platform not supported message.</returns>
         public static string GetPlatformNotSupportedMsg()
         {
-            return string.Format("Platform {0} is not supported.", Environment.OSVersion.Platform.ToString());
+            return $"Platform {Environment.OSVersion.Platform.ToString()} is not supported.";
         }
 
         /// <summary>
@@ -123,7 +119,7 @@ namespace DynamicInterop
         /// <param name="nativeLibFilename"> Filename of the native library file.</param>
         /// <param name="libname">           (Optional) human-readable name of the library.</param>
         /// <param name="envVarName">        (Optional)
-        ///                                  Environment variable to use for search path(s) - 
+        ///                                  Environment variable to use for search path(s) -
         ///                                  defaults according to platform to PATH or LD_LIBRARY_PATH if empty.</param>
         /// <returns> The found full path.</returns>
         public static string FindFirstFullPath(string nativeLibFilename, string libname = "native library", string envVarName = "")
@@ -131,24 +127,26 @@ namespace DynamicInterop
             if (string.IsNullOrEmpty(nativeLibFilename) || !Path.IsPathRooted(nativeLibFilename))
                 nativeLibFilename = findFirstFullPath(nativeLibFilename, envVarName);
             else if (!File.Exists(nativeLibFilename))
-                throw new DllNotFoundException(string.Format("Could not find specified file {0} to load as {1}", nativeLibFilename, libname));
+                throw new DllNotFoundException(
+                    $"Could not find specified file {nativeLibFilename} to load as {libname}");
             return nativeLibFilename;
         }
 
         private static string findFirstFullPath(string shortFileName, string envVarName = "")
         {
             if (string.IsNullOrEmpty(shortFileName))
-                throw new ArgumentNullException("shortFileName");
+                throw new ArgumentNullException(nameof(shortFileName));
 
-            string libSearchPathEnvVar = envVarName;
+            var libSearchPathEnvVar = envVarName;
             if (string.IsNullOrEmpty(libSearchPathEnvVar))
                 libSearchPathEnvVar = (Environment.OSVersion.Platform == PlatformID.Win32NT ? "PATH" : "LD_LIBRARY_PATH");
-            var candidates = PlatformUtility.FindFullPathEnvVar(shortFileName, libSearchPathEnvVar);
+            var candidates = FindFullPathEnvVar(shortFileName, libSearchPathEnvVar);
             if ((candidates.Length == 0) && (Environment.OSVersion.Platform == PlatformID.Win32NT))
                 if (File.Exists(shortFileName))
-                    candidates = new string[] { shortFileName };
+                    candidates = [shortFileName];
             if (candidates.Length == 0)
-                throw new DllNotFoundException(string.Format("Could not find native library named '{0}' within the directories specified in the '{1}' environment variable", shortFileName, libSearchPathEnvVar));
+                throw new DllNotFoundException(
+                    $"Could not find native library named '{shortFileName}' within the directories specified in the '{libSearchPathEnvVar}' environment variable");
             else
                 return candidates[0];
         }
@@ -163,10 +161,10 @@ namespace DynamicInterop
         public static string CreateLibraryFileName(string libraryName)
         {
             if (string.IsNullOrEmpty(libraryName))
-                throw new ArgumentNullException("libraryName");
-            return 
-                (Environment.OSVersion.Platform == PlatformID.Win32NT ? 
-                libraryName + ".dll" : 
+                throw new ArgumentNullException(nameof(libraryName));
+            return
+                (Environment.OSVersion.Platform == PlatformID.Win32NT ?
+                libraryName + ".dll" :
                 "lib" + libraryName + ".so");
         }
     }
