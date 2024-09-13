@@ -47,18 +47,18 @@ namespace DynamicInterop
         internal static IntPtr InternalLoadLibrary(string filename)
         {
             const int RTLD_LAZY = 0x1;
-//            if (filename.StartsWith ("/")) {
-//                return dlopen (filename, RTLD_LAZY);
-//            }
-//            var searchPaths = getSearchPaths ("LD_LIBRARY_PATH");
-//            searchPaths.AddRange (getSearchPaths ("PATH"));
-//            var dll = searchPaths.Select (directory => Path.Combine (directory, filename)).FirstOrDefault (File.Exists);
-//            if (dll == null) {
-//                throw new DllNotFoundException ("Could not find the file: " + filename + " on the search path.  Checked these directories:\n "
-//                + String.Join ("\n", searchPaths));
-//            }
+            if (filename.StartsWith('/')) {
+                return dlopen (filename, RTLD_LAZY);
+            }
+            var searchPaths = getSearchPaths ("LD_LIBRARY_PATH");
+            searchPaths.AddRange (getSearchPaths ("PATH"));
+            var dll = searchPaths.Select (directory => Path.Combine (directory, filename)).FirstOrDefault (File.Exists);
+            if (dll == null) {
+                throw new DllNotFoundException ("Could not find the file: " + filename + " on the search path.  Checked these directories:\n "
+                + string.Join ("\n", searchPaths));
+            }
 
-            var result = dlopen (filename, RTLD_LAZY);
+            var result = dlopen (dll, RTLD_LAZY);
             return result;
 
         }

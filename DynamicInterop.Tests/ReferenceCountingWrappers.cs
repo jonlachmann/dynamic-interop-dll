@@ -14,7 +14,7 @@ namespace DynamicInterop.Tests
             var testLibPathEnv = "DynamicInteropTestLibPath";
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(testLibPathEnv)))
             {
-                Assert.Error("DynamicInteropTestLibPathnot set");
+                throw new Exception("DynamicInteropTestLibPathnot set");
                 var d = Environment.GetEnvironmentVariables();
                 foreach (var k in d.Keys)
                 {
@@ -268,7 +268,7 @@ namespace DynamicInterop.Tests
             owner.Release();
             Assert.Equal(0, owner.ReferenceCount);
             Assert.Equal(0, dog.ReferenceCount);
-            // Cannot check on the native ref count - deleted objects. 
+            // Cannot check on the native ref count - deleted objects.
             // TODO think of a simple way to test these
             //Assert.Equal(0, owner.NativeReferenceCount);
             //Assert.Equal(0, dog.NativeReferenceCount);
@@ -277,13 +277,13 @@ namespace DynamicInterop.Tests
         }
 
         /*
-        // Try as i might i cannot seem to force 
+        // Try as i might i cannot seem to force
         // garbage collection on this unit test.
-        // If I change the execution point back in debug mode I can get 
-        // an expected finalization, but otherwise, nope. 
-        // This is puzzling. I have to give up on unit testing this. I do not see in 
+        // If I change the execution point back in debug mode I can get
+        // an expected finalization, but otherwise, nope.
+        // This is puzzling. I have to give up on unit testing this. I do not see in
         // any way how there could possibly be a mem leak with these.
-        // 2017-10-24 On windows, I cannot get setting dog to null to trigger GC, somehow. 
+        // 2017-10-24 On windows, I cannot get setting dog to null to trigger GC, somehow.
         // At least not in debug mode from VS via the test explorer. Using netstandard2.0 as a target platform. i.e. what runtime??
         // A Watchpoint but the other tests suggest this is a false flag.
         // 2018-01- Same issue on linux
