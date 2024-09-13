@@ -22,27 +22,26 @@ namespace DynamicInterop
         // {
         //     get { return handle == IntPtr.Zero; }
         // }
-        
+
         /// <summary>
         /// Creates a proxy for the specified dll.
         /// </summary>
         /// <param name="dllName">The DLL's name.</param>
         public UnmanagedDll(string dllName)
         {
-            if (dllName == null)
+            switch (dllName)
             {
-                throw new ArgumentNullException("dllName", "The name of the library to load is a null reference");
-            }
-            if (dllName == string.Empty)
-            {
-                throw new ArgumentException("The name of the library to load is an empty string", "dllName");
+                case null:
+                    throw new ArgumentNullException(nameof(dllName), "The name of the library to load is a null reference");
+                case "":
+                    throw new ArgumentException("The name of the library to load is an empty string", nameof(dllName));
             }
 
-            handle = new SafeHandleUnmanagedDll(dllName); 
+            handle = new SafeHandleUnmanagedDll(dllName);
 
             if (handle.IsInvalid)
             {
-                // Retrieve the last error as soon as possible, 
+                // Retrieve the last error as soon as possible,
                 // to limit the risk of another call to the dynamic loader overriding the error message;
                 var nativeError = handle.GetLastError();
                 ReportLoadLibError(dllName, nativeError);
@@ -68,7 +67,7 @@ namespace DynamicInterop
                 // This below assumes that the PATH environment variable is what is relied on
                 // TODO: check whether there is more to it: http://msdn.microsoft.com/en-us/library/ms682586.aspx
 
-                // Also some pointers to relevant information if we want to check whether the attempt to load 
+                // Also some pointers to relevant information if we want to check whether the attempt to load
                 // was made on a 32 or 64 bit library
                 // For Windows:
                 // http://stackoverflow.com/questions/1345632/determine-if-an-executable-or-library-is-32-or-64-bits-on-windows
@@ -81,7 +80,7 @@ namespace DynamicInterop
             }
             */
         }
-            
+
         [Obsolete("This message is likely to be too distribution specific", true)]
         private string createLdLibPathMsg()
         {
@@ -89,13 +88,13 @@ namespace DynamicInterop
                 return null;
             //var sampleldLibPaths = "/usr/local/lib/R/lib:/usr/local/lib:/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server";
             var ldLibPathEnv = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
-            string msg = Environment.NewLine + Environment.NewLine;
+            var msg = Environment.NewLine + Environment.NewLine;
             if (string.IsNullOrEmpty(ldLibPathEnv))
-                msg = msg + "The environment variable LD_LIBRARY_PATH is not set.";
+                msg += "The environment variable LD_LIBRARY_PATH is not set.";
             else
-                msg = msg + string.Format("The environment variable LD_LIBRARY_PATH is set to {0}.", ldLibPathEnv);
+                msg += $"The environment variable LD_LIBRARY_PATH is set to {ldLibPathEnv}.";
 
-            msg = msg + " For some Unix-like operating systems you may need to set or modify the variable LD_LIBRARY_PATH BEFORE launching the application.";
+            msg += " For some Unix-like operating systems you may need to set or modify the variable LD_LIBRARY_PATH BEFORE launching the application.";
             //msg = msg + " You can get the value as set by the R console application for your system, with the statement Sys.getenv('LD_LIBRARY_PATH'). For instance from your shell prompt:";
             //msg = msg + Environment.NewLine;
             //msg = msg + "Rscript -e \"Sys.getenv('LD_LIBRARY_PATH')\"";
@@ -108,12 +107,12 @@ namespace DynamicInterop
 
         private void ThrowFailedLibraryLoad(string dllFullName, string nativeError)
         {
-            var strMsg = string.Format("This {0}-bit process failed to load the library {1}",
-                                       (Environment.Is64BitProcess ? "64" : "32"), dllFullName);
+            var strMsg =
+                $"This {(Environment.Is64BitProcess ? "64" : "32")}-bit process failed to load the library {dllFullName}";
             if (!string.IsNullOrEmpty(nativeError))
-                strMsg = strMsg + string.Format(". Native error message is '{0}'", nativeError);
+                strMsg += $". Native error message is '{nativeError}'";
             else
-                strMsg = strMsg + ". No further error message from the dynamic library loader";
+                strMsg += ". No further error message from the dynamic library loader";
 
 //            var ldLibPathMsg = createLdLibPathMsg();
 //            if (!string.IsNullOrEmpty(ldLibPathMsg))
@@ -121,7 +120,7 @@ namespace DynamicInterop
             throw new ArgumentException(strMsg);
         }
 
-        private ConcurrentDictionary<string, object> delegateFunctionPointers = new ConcurrentDictionary<string, object>();
+        private ConcurrentDictionary<string, object> delegateFunctionPointers = new();
 
         /// <summary>
         /// Creates the delegate function for the specified function defined in the DLL.
@@ -144,17 +143,17 @@ namespace DynamicInterop
            where TDelegate : class
         {
             if (string.IsNullOrEmpty(entryPoint))
-                throw new ArgumentNullException("entryPoint", "Native function name cannot be null or empty");
+                throw new ArgumentNullException(nameof(entryPoint), "Native function name cannot be null or empty");
             lock (this)
             {
-                Type delegateType = typeof(TDelegate);
-                if (delegateFunctionPointers.ContainsKey(entryPoint))
-                    return (TDelegate)delegateFunctionPointers[entryPoint];
+                var delegateType = typeof(TDelegate);
+                if (delegateFunctionPointers.TryGetValue(entryPoint, out var pointer))
+                    return (TDelegate)pointer;
                 if (!delegateType.IsSubclassOf(typeof(Delegate)))
                 {
                     throw new InvalidCastException();
                 }
-                IntPtr function = GetFunctionAddress(entryPoint);
+                var function = GetFunctionAddress(entryPoint);
                 if (function == IntPtr.Zero)
                 {
                     throwEntryPointNotFound(entryPoint);
@@ -167,7 +166,7 @@ namespace DynamicInterop
 
         private void throwEntryPointNotFound(string entryPoint)
         {
-            throw new EntryPointNotFoundException(string.Format("Function {0} not found in native library {1}", entryPoint, this.Filename));
+            throw new EntryPointNotFoundException($"Function {entryPoint} not found in native library {Filename}");
         }
 
         /// <summary>
@@ -189,7 +188,7 @@ namespace DynamicInterop
         {
             if (string.IsNullOrEmpty(entryPoint))
             {
-                throw new ArgumentNullException("The entry point cannot be null or an empty string", "entryPoint");
+                throw new ArgumentNullException(nameof(entryPoint), "The entry point cannot be null or an empty string");
             }
             return GetFunctionAddress(entryPoint);
         }
@@ -219,14 +218,15 @@ namespace DynamicInterop
 
         IntPtr checkedGetSymbolHandle(string symbolName)
         {
-            var addr = this.DangerousGetHandle (symbolName);
+            var addr = DangerousGetHandle (symbolName);
             if (IntPtr.Zero == addr)
-                throw new ArgumentException (string.Format ("Could not retrieve a pointer for the symbol '{0}' in file '{1}'", symbolName, Filename));
+                throw new ArgumentException (
+                    $"Could not retrieve a pointer for the symbol '{symbolName}' in file '{Filename}'");
             return addr;
         }
 
         /// <summary>
-        /// Writes an int32 value to the address of a symbol in the library. 
+        /// Writes an int32 value to the address of a symbol in the library.
         /// </summary>
         /// <param name="symbolName">Symbol name.</param>
         /// <param name="value">Value.</param>
@@ -238,7 +238,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Reads an int32 value from the address of a symbol in the library. 
+        /// Reads an int32 value from the address of a symbol in the library.
         /// </summary>
         /// <returns>The value for this symbol, read as an int32</returns>
         /// <param name="symbolName">Symbol name.</param>
@@ -250,7 +250,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Writes an int64 value to the address of a symbol in the library. 
+        /// Writes an int64 value to the address of a symbol in the library.
         /// </summary>
         /// <param name="symbolName">Symbol name.</param>
         /// <param name="value">Value.</param>
@@ -262,7 +262,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Reads an int64 value from the address of a symbol in the library. 
+        /// Reads an int64 value from the address of a symbol in the library.
         /// </summary>
         /// <returns>The value for this symbol, read as an int64</returns>
         /// <param name="symbolName">Symbol name.</param>
@@ -274,7 +274,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Writes an IntPtr value to the address of a symbol in the library. 
+        /// Writes an IntPtr value to the address of a symbol in the library.
         /// </summary>
         /// <param name="symbolName">Symbol name.</param>
         /// <param name="value">Value.</param>
@@ -286,7 +286,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Reads an IntPtr value from the address of a symbol in the library. 
+        /// Reads an IntPtr value from the address of a symbol in the library.
         /// </summary>
         /// <returns>The value for this symbol, read as an IntPtr</returns>
         /// <param name="symbolName">Symbol name.</param>
@@ -298,7 +298,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Writes a Byte value to the address of a symbol in the library. 
+        /// Writes a Byte value to the address of a symbol in the library.
         /// </summary>
         /// <param name="symbolName">Symbol name.</param>
         /// <param name="value">Value.</param>
@@ -310,7 +310,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Reads a byte value from the address of a symbol in the library. 
+        /// Reads a byte value from the address of a symbol in the library.
         /// </summary>
         /// <returns>The value for this symbol, read as a byte</returns>
         /// <param name="symbolName">Symbol name.</param>
@@ -322,7 +322,7 @@ namespace DynamicInterop
         }
 
         /// <summary>
-        /// Reads a string value from the address of a symbol in the library. 
+        /// Reads a string value from the address of a symbol in the library.
         /// </summary>
         /// <returns>The value for this symbol, read as an ANSI string</returns>
         /// <param name="symbolName">Symbol name.</param>
@@ -331,6 +331,6 @@ namespace DynamicInterop
         {
             var addr = checkedGetSymbolHandle (symbolName);
             return Marshal.PtrToStringAnsi(addr);
-        }           
+        }
     }
 }

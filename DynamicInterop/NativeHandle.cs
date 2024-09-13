@@ -4,7 +4,7 @@ namespace DynamicInterop
 {
 
     /// <summary> Interface for native handle.</summary>
-    /// <remarks>This is similar in intent to the BCL SafeHandle, but with release 
+    /// <remarks>This is similar in intent to the BCL SafeHandle, but with release
     ///          behaviors that are more desirable in particular circumstances.
     ///          </remarks>
     public interface INativeHandle : IDisposable
@@ -28,14 +28,14 @@ namespace DynamicInterop
         ///
         /// <param name="pointer">         The handle, value of the pointer to the native object</param>
         /// <param name="currentRefCount"> (Optional) Number of pre-existing references for the native object</param>
-        /// <remarks>If a native object was created prior to its use by .NET, its lifetime may need to extend its use 
+        /// <remarks>If a native object was created prior to its use by .NET, its lifetime may need to extend its use
         ///          from .NET. In practice the scenario is unlikely</remarks>
         protected NativeHandle(IntPtr pointer, int currentRefCount = 0)
         {
             SetHandle(pointer, currentRefCount);
         }
 
-        /// <summary> Specialised default constructor for use only by derived class. 
+        /// <summary> Specialised default constructor for use only by derived class.
         ///           Defers setting the handle to the derived class</summary>
         protected NativeHandle()
         {
@@ -53,17 +53,17 @@ namespace DynamicInterop
         ///
         /// <param name="pointer">         The handle, value of the pointer to the native object</param>
         /// <param name="currentRefCount"> (Optional) Number of pre-existing references for the native object</param>
-        /// <remarks>If a native object was created prior to its use by .NET, its lifetime may need to extend its use 
+        /// <remarks>If a native object was created prior to its use by .NET, its lifetime may need to extend its use
         ///          from .NET. In practice the scenario is unlikely</remarks>
         protected void SetHandle(IntPtr pointer, int currentRefCount = 0)
         {
             if (!IsValidHandle(pointer))
-                throw new ArgumentException(string.Format("pointer '{0}' is not valid", pointer.ToString()));
+                throw new ArgumentException($"pointer '{pointer.ToString()}' is not valid");
             handle = pointer;
             ReferenceCount = currentRefCount + 1;
         }
 
-        private bool finalizing = false;
+        private bool finalizing;
 
         /// <summary> Finaliser. Triggers the disposal of this object if not manually done.</summary>
         ~NativeHandle()
@@ -89,19 +89,13 @@ namespace DynamicInterop
         /// <summary> Gets a value indicating whether this handle has been disposed of already</summary>
         ///
         /// <value> True if disposed, false if not.</value>
-        public bool Disposed
-        {
-            get { return IsInvalid; }
-        }
+        public bool Disposed => IsInvalid;
 
         /// <summary> The handle to the native resource.</summary>
         protected IntPtr handle;
 
         /// <summary> Gets a value indicating whether this handle is invalid.</summary>
-        public bool IsInvalid
-        {
-            get { return handle == IntPtr.Zero; }
-        }
+        public bool IsInvalid => handle == IntPtr.Zero;
 
         /// <summary> If the reference counts allows it, release the resource refered to by this handle.</summary>
         public void Dispose()
@@ -115,13 +109,11 @@ namespace DynamicInterop
                 return;
             if (decrement)
                 ReferenceCount--;
-            if (ReferenceCount <= 0)
-                if (ReleaseHandle())
-                {
-                    handle = IntPtr.Zero;
-                    if (!finalizing)
-                        GC.SuppressFinalize(this);
-                }
+            if (ReferenceCount > 0) return;
+            if (!ReleaseHandle()) return;
+            handle = IntPtr.Zero;
+            if (!finalizing)
+                GC.SuppressFinalize(this);
         }
 
         /// <summary> Returns the value of the handle.</summary>

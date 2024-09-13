@@ -14,17 +14,15 @@ namespace DynamicInterop
         {
             //new SecurityPermission(SecurityPermissionFlag.UnmanagedCode).Demand();
             var handle = Win32.LoadLibrary(filename);
-            if (handle == IntPtr.Zero)
-            {
-                var error = new Win32Exception(Marshal.GetLastWin32Error()).Message;
-                Console.WriteLine(error);
-            }
+            if (handle != IntPtr.Zero) return handle;
+            var error = new Win32Exception(Marshal.GetLastWin32Error()).Message;
+            Console.WriteLine(error);
             return handle;
         }
 
         public string GetLastError()
         {
-            // see for instance http://blogs.msdn.com/b/shawnfa/archive/2004/09/10/227995.aspx 
+            // see for instance http://blogs.msdn.com/b/shawnfa/archive/2004/09/10/227995.aspx
             // and http://blogs.msdn.com/b/adam_nathan/archive/2003/04/25/56643.aspx
             // TODO: does this work as expected with Mono+Windows stack?
             return new Win32Exception().Message;

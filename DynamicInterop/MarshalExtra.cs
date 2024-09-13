@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace DynamicInterop
 {
-    /// <summary> 
+    /// <summary>
     /// Extra methods on top of System.Runtime.InteropServices.Marshal for allocating unmanaged memory, copying unmanaged
     /// memory blocks, and converting managed to unmanaged types</summary>
     class MarshalExtra
@@ -15,11 +15,11 @@ namespace DynamicInterop
         /// <returns> A pointer to the newly allocated memory. This memory must be released using the FreeHGlobal(IntPtr) method, or related.</returns>
         public static IntPtr AllocHGlobal<T>()
         {
-            int iSize = Marshal.SizeOf(typeof(T));
+            var iSize = Marshal.SizeOf(typeof(T));
             return Marshal.AllocHGlobal(iSize);
         }
 
-        /// <summary> Marshals data from an unmanaged block of memory to a newly allocated managed object of the type specified by a generic type parameter. 
+        /// <summary> Marshals data from an unmanaged block of memory to a newly allocated managed object of the type specified by a generic type parameter.
         ///           Note it is almost superseded in .NET Framework 4.5.1 and later versions; consider your needs</summary>
         ///
         /// <exception cref="ArgumentException"> Thrown when one or more arguments have unsupported or
@@ -34,7 +34,7 @@ namespace DynamicInterop
         {
             if (ptr == IntPtr.Zero)
                 throw new ArgumentException("pointer must not be IntPtr.Zero");
-            T result = (T)Marshal.PtrToStructure(ptr, typeof(T));
+            var result = (T)Marshal.PtrToStructure(ptr, typeof(T));
             if (cleanup) Marshal.FreeHGlobal(ptr);
             return result;
         }
@@ -48,9 +48,9 @@ namespace DynamicInterop
         /// <returns> A pointer to a newly allocated unmanaged block of memory.</returns>
         public static IntPtr StructureToPtr<T>(T structure) where T : struct
         {
-            IntPtr ptr = IntPtr.Zero;
-            T localStruct = structure;
-            int iSize = Marshal.SizeOf(typeof(T));
+            var ptr = IntPtr.Zero;
+            var localStruct = structure;
+            var iSize = Marshal.SizeOf(typeof(T));
             ptr = Marshal.AllocHGlobal(iSize);
             Marshal.StructureToPtr<T>(localStruct, ptr, false);
             return ptr;
@@ -76,12 +76,12 @@ namespace DynamicInterop
 
         public static IntPtr ArrayOfStructureToPtr<T>(T[] managedObjects) where T : struct
         {
-            int structSize = Marshal.SizeOf<T>();
-            IntPtr result = Marshal.AllocHGlobal(managedObjects.Length * structSize);
+            var structSize = Marshal.SizeOf<T>();
+            var result = Marshal.AllocHGlobal(managedObjects.Length * structSize);
 
-            for (int i = 0; i < managedObjects.Length; i++)
+            for (var i = 0; i < managedObjects.Length; i++)
             {
-                int offset = i * structSize;
+                var offset = i * structSize;
                 Marshal.StructureToPtr(managedObjects[i], IntPtr.Add(result, offset), false);
             }
             return result;
@@ -90,7 +90,7 @@ namespace DynamicInterop
         public static void FreeNativeArrayOfStruct<T>(IntPtr ptr, ref T[] managedObjects, bool copy = false) where T : struct
         {
             if (ptr == IntPtr.Zero)
-                return; 
+                return;
             Marshal.FreeHGlobal(ptr);
         }
     }
