@@ -2,12 +2,11 @@
 using System.ComponentModel;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Text;
 
 namespace DynamicInterop
 {
-    [SecurityPermission(SecurityAction.Demand, Flags = SecurityPermissionFlag.UnmanagedCode)]
+
     internal class WindowsLibraryLoader : IDynamicLibraryLoader
     {
         public IntPtr LoadLibrary(string filename)

@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Security.Permissions;
 using Microsoft.Win32.SafeHandles;
 
 namespace DynamicInterop
 {
-    [SecurityPermission(SecurityAction.Demand, Flags = SecurityPermissionFlag.UnmanagedCode)]
+
     internal sealed class SafeHandleUnmanagedDll : SafeHandleZeroOrMinusOneIsInvalid
     {
         public SafeHandleUnmanagedDll(string dllName) : base(true)
