@@ -141,7 +141,7 @@ namespace DynamicInterop
             var candidates = FindFullPathEnvVar(shortFileName, libSearchPathEnvVar);
             if ((candidates.Length == 0) && (Environment.OSVersion.Platform == PlatformID.Win32NT))
                 if (File.Exists(shortFileName))
-                    candidates = [shortFileName];
+                    candidates = new[] { shortFileName };
             if (candidates.Length == 0)
                 throw new DllNotFoundException(
                     $"Could not find native library named '{shortFileName}' within the directories specified in the '{libSearchPathEnvVar}' environment variable");
