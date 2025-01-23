@@ -229,7 +229,7 @@ namespace DynamicInterop
         /// <remarks>Throws an <exception cref="System.ArgumentException">ArgumentException</exception> if the symbol is not exported by the library</remarks>
         public void WriteInt32(string symbolName, int value)
         {
-            var addr = checkedGetSymbolHandle (symbolName);
+            var addr = checkedGetSymbolHandle(symbolName);
             Marshal.WriteInt32(addr, value);
         }
 
