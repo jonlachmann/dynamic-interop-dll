@@ -67,18 +67,18 @@ namespace DynamicInterop
             return searchPaths;
         }
 
-        [DllImport("libdl")]
+        [DllImport("libc")]
         private static extern IntPtr dlopen([MarshalAs(UnmanagedType.LPStr)] string filename, int flag);
 
-        [DllImport("libdl")]
+        [DllImport("libc")]
         [return: MarshalAs(UnmanagedType.LPStr)]
         private static extern string dlerror();
 
-        [DllImport("libdl", EntryPoint = "dlclose")]
+        [DllImport("libc", EntryPoint = "dlclose")]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         private static extern int dlclose(IntPtr hModule);
 
-        [DllImport("libdl", EntryPoint = "dlsym")]
+        [DllImport("libc", EntryPoint = "dlsym")]
         private static extern IntPtr dlsym(IntPtr hModule, [MarshalAs(UnmanagedType.LPStr)] string lpProcName);
     }
 }
